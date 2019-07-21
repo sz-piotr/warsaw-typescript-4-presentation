@@ -20,9 +20,8 @@
   </p>
 </section>
 
-
 <section class="slide">
-  <pre data-trim><code class="language-typescript">
+  <pre><code class="language-typescript">
     interface Dog {
       name: string
       age: number
@@ -37,30 +36,34 @@
 </section>
 
 <section class="slide">
-    <pre data-trim><code class="language-typescript">
-      app.post('/dogs', (req, res) => {
-        // req.body is of type any
-        dogService.addDog(req.body)
-        res.send(201)
-      })
-    </code></pre>
-  </section>
-
-<section class="slide">
-  <pre data-trim><code class="language-typescript">
+  <pre><code class="language-typescript">
     app.post('/dogs', (req, res) => {
-      ensureIsString(req.body.name)
-      ensureIsNumber(req.body.age)
-
-      // req.body is STILL of type any
-      dogService.addDog(req.body)
-      res.send(201)
+      // req.body is of type any
+      const id = dogService.addDog(req.body)
+      res.status(201).json({ id })
     })
   </code></pre>
 </section>
 
 <section class="slide">
-  <pre data-trim><code class="language-typescript">
+  <pre><code class="language-typescript">
+    app.post('/dogs', (req, res) => {
+      if (
+        typeof req.body.name !== 'string' ||
+        typeof req.body.age !== 'number'
+      ) {
+        throw new TypeError()
+      }
+
+      // req.body is STILL of type any
+      const id = dogService.addDog(req.body)
+      res.status(201).json({ id })
+    })
+  </code></pre>
+</section>
+
+<section class="slide">
+  <pre><code class="language-typescript">
     interface Dog {
       name: string
       age: number
@@ -68,27 +71,273 @@
     }
 
     app.post('/dogs', (req, res) => {
-      ensureIsString(req.body.name)
-      ensureIsNumber(req.body.age)
+      if (
+        typeof req.body.name !== 'string' ||
+        typeof req.body.age !== 'number'
+      ) {
+        throw new TypeError()
+      }
 
-      // NO TYPE ERROR
-      dogService.addDog(req.body)
-      res.send(201)
+      // No error in runtime or compile time :(
+      const id = dogService.addDog(req.body)
+      res.status(201).json({ id })
     })
   </code></pre>
 </section>
 
 <section class="slide">
-  <img src="img/logo.png" class="logo" alt="Restless" title="Restless" />
+  <pre><code class="language-typescript">
+    app.post('/dogs', (req, res) => {
+      // declarative not imperative checks
+      const checked = checkTypes(req, {
+        body: {
+          name: "string",
+          age: "number",
+          owner: "string",
+        }
+      })
+
+      // type of checked.body should now be
+      // { name: string, age: number, owner: string }
+
+      const id = dogService.addDog(checked.body)
+      res.status(201).json({ id })
+    })
+  </code></pre>
+</section>
+
+<section class="slide">
+  Restless to the rescue!
+</section>
+
+<section class="slide">
+  <pre><code class="language-typescript">
+    import {/* ... */} from '@restless/restless'
+
+    app.post('/dogs', asyncHandler(
+      sanitize({
+        body: asObject({
+          name: asString,
+          age: asNumber,
+          owner: asString,
+        })
+      }),
+      (checked) => {
+        const id = dogService.addDog(checked.body)
+        return responseOf({ id }, 201)
+      }
+    ))
+  </code></pre>
+</section>
+
+<section class="slide">
+  <pre><code class="language-typescript">
+    POST "/dogs"
+    {
+      "name": "Fafik",
+      "owner": {
+        "name": "Piotr"
+      }
+    }
+
+    RESPONSE:
+    {
+      "errors": [
+        { "path": "body.age", "expected": "number" },
+        { "path": "body.owner", "expected": "string" },
+      ]
+    }
+  </code></pre>
+</section>
+
+<section class="slide">
+  <pre><code class="language-typescript">
+    import {/* ... */} from '@restless/restless'
+
+    app.post('/dogs', asyncHandler(
+      sanitize({
+        body: asObject({
+          name: asString,
+          age: asNumber,
+          owner: asString,
+        })
+      }),
+      ({ body }) => dogService.addDog(body),
+      (id) => responseOf({ id }, 201)
+    ))
+  </code></pre>
+</section>
+
+<section class="slide">
+  Is this magic? How does this work?
+</section>
+
+<section class="slide">
+  <pre><code class="language-typescript">
+    type Sanitizer&lt;T&gt; = (value: unknown) => T
+  </code></pre>
+</section>
+
+<section class="slide">
+  <pre><code class="language-typescript">
+    type Sanitizer&lt;T&gt; = (value: unknown, path: string) => T
+
+    const mySanitizer = asObject({
+      foo: asObject({
+        bar: asString
+      })
+    })
+
+    mySanitizer({ foo: { bar: 1 }})
+    // ERROR: { path: 'foo.bar', expected: 'string' }
+  </code></pre>
+</section>
+
+<section class="slide">
+  <pre><code class="language-typescript">
+    type Sanitizer&lt;T&gt; = (value: unknown, path: string) =>
+      Either&lt;SanitizerFailure[], T&gt;
+
+    type Either&lt;L, R&gt;
+      = { left: L }
+      | { right: R }
+
+    interface SanitizerFailure {
+      path: string
+      expected: string
+    }
+  </code></pre>
+</section>
+
+<section class="slide">
+  <pre><code class="language-typescript">
+    export type Schema&lt;T&gt; = {
+      [K in keyof T]: Sanitizer&lt;T[K]&gt;
+    }
+
+    const asObject = &lt;T&gt; (schema: Schema&lt;T&gt;): Sanitizer&lt;T&gt;
+
+    const mySanitizer = asObject({
+      foo: asString, // Sanitizer&lt;string&gt;
+      bar: asNumber // Sanitizer&lt;number&gt;
+    }) // Sanitizer&lt;{ foo: string, bar: number }&gt;
+  </code></pre>
+</section>
+
+<section class="slide">
+  <div style="text-align: center">
+    But my data model is not that trivial.<br>
+    I need something custom!
+  </div>
+</section>
+
+<section class="slide">
+  <pre><code class="language-typescript">
+    app.put('/dogs/:id', asyncHandler(
+      sanitize({
+        id: asNumber,
+        body: asObject({
+          name: asString,
+          age: asNumber,
+          owner: asString,
+        })
+      }),
+      // ...
+    ))
+  </code></pre>
+</section>
+
+<section class="slide">
+  <pre><code class="language-typescript">
+    app.put('/dogs/:id', asyncHandler(
+      sanitize({
+        id: asNumber,
+        body: asObject({
+          name: asOptional(asString),
+          age: asOptional(asNumber),
+          owner: asOptional(asString),
+        })
+      }),
+      // ...
+    ))
+  </code></pre>
+</section>
+
+<section class="slide">
+  <pre><code class="language-typescript">
+    // GET /dogs
+    // GET /dogs?age=4
+    app.get('/dogs', asyncHandler(
+      sanitize({
+        query: asObject({
+          age: asOptional(asNumber),
+        })
+      }),
+      // ...
+    ))
+  </code></pre>
+</section>
+
+<section class="slide">
+  <pre><code class="language-typescript">
+    asMatching(/^foo/)
+
+    asChecked(asNumber, x => x > 40)
+
+    asMapped(asString, x => x.split(''))
+  </code></pre>
+</section>
+
+<section class="slide">
+  <pre><code class="language-typescript">
+    asFlatMapped(asString, (value, path) => {
+      const date = new Date(value)
+      if (!isNaN(date.getTime())) {
+        return Either.right(date)
+      } else {
+        return Either.left([
+          { path, expected: 'date' }
+        ])
+      }
+    })
+  </code></pre>
+</section>
+
+<section class="slide">
+  <pre><code class="language-typescript">
+    import { Either, Sanitizer } from '@restless/restless'
+    import { utils } from 'ethers'
+
+    export const asBigNumber: Sanitizer&lt;utils.BigNumber&gt; =
+      (value, path) => {
+        try {
+          if (
+            typeof value === 'string' ||
+            typeof value === 'number'
+          ) {
+            return Either.right(utils.bigNumberify(value))
+          }
+        } catch {}
+        return Either.left([
+          { path, expected: 'big number' }
+        ])
+      }
+  </code></pre>
+</section>
+
+<section class="slide">
+  <div style="display: flex; justify-content: center; align-items: center">
+    <img src="img/logo.png" class="logo" alt="Restless" title="Restless" />
+    <img
+      src="data:image/gif;base64,R0lGODlhhACEAJEAAAAAAP///wAAAAAAACH5BAEAAAIALAAAAACEAIQAAAL/jI+py+0Po5y02ouz3rz7D4biSJbmiabqyrbuC8chQNf2jeeMjeQ+0KthfsQfpYi87YSHJNPAuzidxylySQtSm8+K9Tr5FrFA7hbarYp96rIlis5Kx2blAu5NP/BtrTtP5MdXN6TnMCiBhxgBFmensAgReWfI2DV5SOe4iNnQ6SeoQxi21ql4qRnwObop6thWKokq14oDSkqrmrpa+yWbexrIagm8W0kWuzf716ib+8ts/DyMLP1HFmpLrVws/Eo5DTl1m9lttF0e7e18jZ5gRe65zOaOXUf/LR7+Pl4/3MyLXbZHAu8tq2YOH7+ErgommtcwGEFOEVPFA3gMnLpz//nYSUS4UeFFa30MauuokOJJjw1HrgsYMJ7LjQNraiy0z96bSh//VVwpE1e7dDiHOjwqMSnPjESFFtWJFCLDfTH96Ss18aBPczMHJnuINSvXrTTJel0DK2xZlFrZju31lZjat1Hp9nQ71yiMuyyp9pOBgq9IkxwBmxDckvBgwyIQA1Wc2IXjtQuTBO349OYcu20rY/Sb06nmnZzpnl2pUq/oq5nxXu5bODUH2ZvFUqbdFG5n3JXTlqb8embKzq9h/ry9NDTe4abdGUe9O7nq5ceLSy+ZjjlBm9mlT14sTzlspaC3a0z9PXL46eOlGgXP3XP0ddCgaUfPFDZI4errc/8D/h9I5L2nXlWsBWhVb+cdh195s+XHl39X3efddRuYQhyCEzJYoYO1nRYbh+KB1wx/4ploGWHx7bfgY9SdSBY8Ks7YXXkkuoddey+JyN6N9MWYH1Tw0agjgTZa5FyQo+n334C8gfhkgkL2R2SJSZ6h4IGkhQQhj1Hq5uJRwTXZJZYSFnkmhTBuOOJfcoGYJo9FYWimhmjaqSZ7LNZYWJw/aslkL4FliBlkWFrp2goRXokVnEsamMGihYKZIqVTrtmBpGIaWumdgELaYJ9mtRgidKZyiWmoPgJI6YDxubqafH/WZWSneaKYI5QWTlokrIICiemltuEKrHm/sskqIKj/IjcVs6IeK2uyOWpH7IvGBhrtmGAt21WV7oW656a5YVutp9Hytupz3D7qZYfX+pptrKu+iqSl7IY55KcF4sipgLuSS6Rv155pXV6+SElmmAQzavChSvIJ6r+6NkyosvmuB9XEFEtrZ8EH8+pvWCR82Wt1QlE8ssScUntywyl7iOxneq6MFmPblusxnctCCkJ6MMc7LqIt+FxruMJePOhvJF/s5MMl14lsxsWWizTNUAOdZdYsQ1t1q24azSi9za6YcKNlS20t1VQCmmuC6VYs9sxsx6otwFyXOeyHes8dNal1b61sa1mDfXebpwous6OJ8v30u2trTVK/ozIeF9lBwkdu7+KDW+24wveWuvN8RZMqdNe0Am6fNah7O+vRJm8r8+qFP4ux5CCT3m5zs5vetO7rxf461kK7fvjkm8eM97zyYk4r2ucmv2+q34ruceqeZ3587dhP5rziv0cvt7hvtnzkqcozvvDN5Nea59JO192937g3636wCKMvP/L0q3w7xDXzWrrcratvsFNLzsDXuwFizXpmA2C9sAW88oUPZQxD4PTGlj+baXCDHOygBz8IwhCKcIQkLKEJT4jCFKqQAQUAADs="
+      style="width: 7.4rem"
+      alt="QR Code for https://github.com/EthWorks/restless"
+      title="QR Code for https://github.com/EthWorks/restless"
+    />
+  </div>
   <a href="https://github.com/EthWorks/restless" class="main-link">
     https://github.com/EthWorks/restless
   </a>
-  <img
-    src="data:image/gif;base64,R0lGODlhhACEAJEAAAAAAP///wAAAAAAACH5BAEAAAIALAAAAACEAIQAAAL/jI+py+0Po5y02ouz3rz7D4biSJbmiabqyrbuC8chQNf2jeeMjeQ+0KthfsQfpYi87YSHJNPAuzidxylySQtSm8+K9Tr5FrFA7hbarYp96rIlis5Kx2blAu5NP/BtrTtP5MdXN6TnMCiBhxgBFmensAgReWfI2DV5SOe4iNnQ6SeoQxi21ql4qRnwObop6thWKokq14oDSkqrmrpa+yWbexrIagm8W0kWuzf716ib+8ts/DyMLP1HFmpLrVws/Eo5DTl1m9lttF0e7e18jZ5gRe65zOaOXUf/LR7+Pl4/3MyLXbZHAu8tq2YOH7+ErgommtcwGEFOEVPFA3gMnLpz//nYSUS4UeFFa30MauuokOJJjw1HrgsYMJ7LjQNraiy0z96bSh//VVwpE1e7dDiHOjwqMSnPjESFFtWJFCLDfTH96Ss18aBPczMHJnuINSvXrTTJel0DK2xZlFrZju31lZjat1Hp9nQ71yiMuyyp9pOBgq9IkxwBmxDckvBgwyIQA1Wc2IXjtQuTBO349OYcu20rY/Sb06nmnZzpnl2pUq/oq5nxXu5bODUH2ZvFUqbdFG5n3JXTlqb8embKzq9h/ry9NDTe4abdGUe9O7nq5ceLSy+ZjjlBm9mlT14sTzlspaC3a0z9PXL46eOlGgXP3XP0ddCgaUfPFDZI4errc/8D/h9I5L2nXlWsBWhVb+cdh195s+XHl39X3efddRuYQhyCEzJYoYO1nRYbh+KB1wx/4ploGWHx7bfgY9SdSBY8Ks7YXXkkuoddey+JyN6N9MWYH1Tw0agjgTZa5FyQo+n334C8gfhkgkL2R2SJSZ6h4IGkhQQhj1Hq5uJRwTXZJZYSFnkmhTBuOOJfcoGYJo9FYWimhmjaqSZ7LNZYWJw/aslkL4FliBlkWFrp2goRXokVnEsamMGihYKZIqVTrtmBpGIaWumdgELaYJ9mtRgidKZyiWmoPgJI6YDxubqafH/WZWSneaKYI5QWTlokrIICiemltuEKrHm/sskqIKj/IjcVs6IeK2uyOWpH7IvGBhrtmGAt21WV7oW656a5YVutp9Hytupz3D7qZYfX+pptrKu+iqSl7IY55KcF4sipgLuSS6Rv155pXV6+SElmmAQzavChSvIJ6r+6NkyosvmuB9XEFEtrZ8EH8+pvWCR82Wt1QlE8ssScUntywyl7iOxneq6MFmPblusxnctCCkJ6MMc7LqIt+FxruMJePOhvJF/s5MMl14lsxsWWizTNUAOdZdYsQ1t1q24azSi9za6YcKNlS20t1VQCmmuC6VYs9sxsx6otwFyXOeyHes8dNal1b61sa1mDfXebpwous6OJ8v30u2trTVK/ozIeF9lBwkdu7+KDW+24wveWuvN8RZMqdNe0Am6fNah7O+vRJm8r8+qFP4ux5CCT3m5zs5vetO7rxf461kK7fvjkm8eM97zyYk4r2ucmv2+q34ruceqeZ3587dhP5rziv0cvt7hvtnzkqcozvvDN5Nea59JO192937g3636wCKMvP/L0q3w7xDXzWrrcratvsFNLzsDXuwFizXpmA2C9sAW88oUPZQxD4PTGlj+baXCDHOygBz8IwhCKcIQkLKEJT4jCFKqQAQUAADs="
-    style="width: 7rem"
-    alt="QR Code for https://github.com/EthWorks/restless"
-    title="QR Code for https://github.com/EthWorks/restless"
-  />
 </section>
 
 <script src="js/trim.js"></script>

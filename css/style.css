@@ -16,7 +16,7 @@ html {
 
 @media (orientation: portrait) {
   html {
-    font-size: 3.3vw;
+    font-size: 3vw;
   }
 }
 
@@ -52,6 +52,6 @@ code {
 
 .main-link {
   font-family: 'Fira Mono', monospace;
-  color: #93a1a1; /* base1 */
+  color: #dc322f; /* red */
   margin: 1rem 0;
 }

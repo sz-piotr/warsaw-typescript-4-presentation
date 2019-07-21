@@ -26,7 +26,8 @@ pre code {
   font-style: italic;
 }
 
-.token.operator {
+.token.operator,
+.token.regex {
   color: #cb4b16; /* orange */
 }
 
