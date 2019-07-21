@@ -183,13 +183,11 @@
     type Sanitizer&lt;T&gt; = (value: unknown, path: string) => T
 
     const mySanitizer = asObject({
-      foo: asObject({
-        bar: asString
-      })
+      numbers: asArray(asNumber)
     })
 
-    mySanitizer({ foo: { bar: 1 }})
-    // ERROR: { path: 'foo.bar', expected: 'string' }
+    mySanitizer({ numbers: [1, 2, null] }, 'data')
+    // ERROR: { path: 'data.numbers[2]', expected: 'number' }
   </code></pre>
 </section>
 
@@ -211,16 +209,29 @@
 
 <section class="slide">
   <pre><code class="language-typescript">
-    export type Schema&lt;T&gt; = {
-      [K in keyof T]: Sanitizer&lt;T[K]&gt;
-    }
+    // Sanitizer&lt;{ foo: string, bar: number }&gt;
+    const mySanitizer = asObject({
+      foo: asString,
+      bar: asNumber
+    })
+  </code></pre>
+</section>
 
-    const asObject = &lt;T&gt; (schema: Schema&lt;T&gt;): Sanitizer&lt;T&gt;
-
+<section class="slide">
+  <pre><code class="language-typescript">
+    // Sanitizer&lt;{ foo: string, bar: number }&gt;
     const mySanitizer = asObject({
       foo: asString, // Sanitizer&lt;string&gt;
       bar: asNumber // Sanitizer&lt;number&gt;
-    }) // Sanitizer&lt;{ foo: string, bar: number }&gt;
+    })
+
+    function asObject&lt;T&gt;(schema: Schema&lt;T&gt;): Sanitizer&lt;T&gt; {
+      // ...
+    }
+
+    export type Schema&lt;T&gt; = {
+      [K in keyof T]: Sanitizer&lt;T[K]&gt;
+    }
   </code></pre>
 </section>
 
