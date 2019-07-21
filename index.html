@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <link href="https://fonts.googleapis.com/css?family=Fira+Sans|Fira+Mono:400,400i,700,700i&amp;subset=latin-ext" rel="stylesheet">
+  <link rel="stylesheet" href="css/normalize.css">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/theme.css">
+
+  <title>Restless: Declarative and type safe endpoints</title>
+</head>
+<body>
+
+<section class="slide">
+  <img src="img/logo.png" class="logo" alt="Restless" title="Restless" />
+  <p>
+    Declarative and type safe endpoints
+  </p>
+</section>
+
+
+<section class="slide">
+  <pre data-trim><code class="language-typescript">
+    interface Dog {
+      name: string
+      age: number
+    }
+
+    class DogService {
+      addDog(dog: Dog) {
+        // ...
+      }
+    }
+  </code></pre>
+</section>
+
+<section class="slide">
+    <pre data-trim><code class="language-typescript">
+      app.post('/dogs', (req, res) => {
+        // req.body is of type any
+        dogService.addDog(req.body)
+        res.send(201)
+      })
+    </code></pre>
+  </section>
+
+<section class="slide">
+  <pre data-trim><code class="language-typescript">
+    app.post('/dogs', (req, res) => {
+      ensureIsString(req.body.name)
+      ensureIsNumber(req.body.age)
+
+      // req.body is STILL of type any
+      dogService.addDog(req.body)
+      res.send(201)
+    })
+  </code></pre>
+</section>
+
+<section class="slide">
+  <pre data-trim><code class="language-typescript">
+    interface Dog {
+      name: string
+      age: number
+      owner: string // NEW FIELD
+    }
+
+    app.post('/dogs', (req, res) => {
+      ensureIsString(req.body.name)
+      ensureIsNumber(req.body.age)
+
+      // NO TYPE ERROR
+      dogService.addDog(req.body)
+      res.send(201)
+    })
+  </code></pre>
+</section>
+
+<section class="slide">
+  <img src="img/logo.png" class="logo" alt="Restless" title="Restless" />
+  <a href="https://github.com/EthWorks/restless" class="main-link">
+    https://github.com/EthWorks/restless
+  </a>
+  <img
+    src="data:image/gif;base64,R0lGODlhhACEAJEAAAAAAP///wAAAAAAACH5BAEAAAIALAAAAACEAIQAAAL/jI+py+0Po5y02ouz3rz7D4biSJbmiabqyrbuC8chQNf2jeeMjeQ+0KthfsQfpYi87YSHJNPAuzidxylySQtSm8+K9Tr5FrFA7hbarYp96rIlis5Kx2blAu5NP/BtrTtP5MdXN6TnMCiBhxgBFmensAgReWfI2DV5SOe4iNnQ6SeoQxi21ql4qRnwObop6thWKokq14oDSkqrmrpa+yWbexrIagm8W0kWuzf716ib+8ts/DyMLP1HFmpLrVws/Eo5DTl1m9lttF0e7e18jZ5gRe65zOaOXUf/LR7+Pl4/3MyLXbZHAu8tq2YOH7+ErgommtcwGEFOEVPFA3gMnLpz//nYSUS4UeFFa30MauuokOJJjw1HrgsYMJ7LjQNraiy0z96bSh//VVwpE1e7dDiHOjwqMSnPjESFFtWJFCLDfTH96Ss18aBPczMHJnuINSvXrTTJel0DK2xZlFrZju31lZjat1Hp9nQ71yiMuyyp9pOBgq9IkxwBmxDckvBgwyIQA1Wc2IXjtQuTBO349OYcu20rY/Sb06nmnZzpnl2pUq/oq5nxXu5bODUH2ZvFUqbdFG5n3JXTlqb8embKzq9h/ry9NDTe4abdGUe9O7nq5ceLSy+ZjjlBm9mlT14sTzlspaC3a0z9PXL46eOlGgXP3XP0ddCgaUfPFDZI4errc/8D/h9I5L2nXlWsBWhVb+cdh195s+XHl39X3efddRuYQhyCEzJYoYO1nRYbh+KB1wx/4ploGWHx7bfgY9SdSBY8Ks7YXXkkuoddey+JyN6N9MWYH1Tw0agjgTZa5FyQo+n334C8gfhkgkL2R2SJSZ6h4IGkhQQhj1Hq5uJRwTXZJZYSFnkmhTBuOOJfcoGYJo9FYWimhmjaqSZ7LNZYWJw/aslkL4FliBlkWFrp2goRXokVnEsamMGihYKZIqVTrtmBpGIaWumdgELaYJ9mtRgidKZyiWmoPgJI6YDxubqafH/WZWSneaKYI5QWTlokrIICiemltuEKrHm/sskqIKj/IjcVs6IeK2uyOWpH7IvGBhrtmGAt21WV7oW656a5YVutp9Hytupz3D7qZYfX+pptrKu+iqSl7IY55KcF4sipgLuSS6Rv155pXV6+SElmmAQzavChSvIJ6r+6NkyosvmuB9XEFEtrZ8EH8+pvWCR82Wt1QlE8ssScUntywyl7iOxneq6MFmPblusxnctCCkJ6MMc7LqIt+FxruMJePOhvJF/s5MMl14lsxsWWizTNUAOdZdYsQ1t1q24azSi9za6YcKNlS20t1VQCmmuC6VYs9sxsx6otwFyXOeyHes8dNal1b61sa1mDfXebpwous6OJ8v30u2trTVK/ozIeF9lBwkdu7+KDW+24wveWuvN8RZMqdNe0Am6fNah7O+vRJm8r8+qFP4ux5CCT3m5zs5vetO7rxf461kK7fvjkm8eM97zyYk4r2ucmv2+q34ruceqeZ3587dhP5rziv0cvt7hvtnzkqcozvvDN5Nea59JO192937g3636wCKMvP/L0q3w7xDXzWrrcratvsFNLzsDXuwFizXpmA2C9sAW88oUPZQxD4PTGlj+baXCDHOygBz8IwhCKcIQkLKEJT4jCFKqQAQUAADs="
+    style="width: 7rem"
+    alt="QR Code for https://github.com/EthWorks/restless"
+    title="QR Code for https://github.com/EthWorks/restless"
+  />
+</section>
+
+<script src="js/trim.js"></script>
+<script src="js/prism.js"></script>
+<script src="js/slides.js"></script>
+
+</body>
+</html>
