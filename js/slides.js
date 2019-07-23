@@ -55,13 +55,6 @@ document.addEventListener('keydown', function (event) {
   }
 })
 
-document.addEventListener('click', function (event) {
-  if (event.target instanceof HTMLElement && event.target.nodeName === 'A') {
-    return
-  }
-  if (event.x < window.innerWidth * 0.2) {
-    presentation.prev()
-  } else if (event.x > window.innerWidth * 0.8) {
-    presentation.next()
-  }
-})
+const mc = new Hammer(document.body)
+mc.on('swiperight', () => presentation.prev())
+mc.on('swipeleft', () => presentation.next())

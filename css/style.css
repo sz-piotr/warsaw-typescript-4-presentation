@@ -55,3 +55,13 @@ code {
   color: #dc322f; /* red */
   margin: 1rem 0;
 }
+
+.about-me li {
+  margin-bottom: 0.5rem;
+}
+
+.about-me img {
+  height: 1rem;
+  position: relative;
+  top: 0.1rem;
+}
